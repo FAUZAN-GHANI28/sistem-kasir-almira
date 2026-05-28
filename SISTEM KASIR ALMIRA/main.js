@@ -1689,27 +1689,28 @@
      
      data.items.forEach(item => {
         let name = item.NAMA_PRODUK || (item.master_barang ? item.master_barang.nama_barang : 'Transaksi Manual');
-        if (name.length > 32) name = name.substring(0, 32);
+        if (name.length > 31) name = name.substring(0, 31);
         addLine(name);
         
         const price = item.HARGA_JUAL || item.harga;
         const sub = item.qty * price;
         const line2 = `${item.qty} x ${formatNumberOnly(price)}`;
-        const line2Right = formatNumberOnly(sub);
+        const line2Right = `Rp${formatNumberOnly(sub)}`;
         
-        let spaces = 32 - line2.length - line2Right.length;
+        let spaces = 31 - line2.length - line2Right.length;
         if (spaces < 1) spaces = 1;
         addLine(line2 + ' '.repeat(spaces) + line2Right);
      });
      
-     addLine('--------------------------------');
+     addLine('-------------------------------');
      
      const totalStr = formatNumberOnly(data.total);
-     addLine('TOTAL   : Rp ' + ' '.repeat(17 - totalStr.length) + totalStr);
+     addLine('TOTAL   : Rp ' + ' '.repeat(16 - totalStr.length) + totalStr);
      const bayarStr = formatNumberOnly(data.bayar);
-     addLine('DIBAYAR : Rp ' + ' '.repeat(17 - bayarStr.length) + bayarStr);
-     const kembaliStr = formatNumberOnly(data.kembalian);
-     addLine('KEMBALI : Rp ' + ' '.repeat(17 - kembaliStr.length) + kembaliStr);
+     addLine('DIBAYAR : Rp ' + ' '.repeat(16 - bayarStr.length) + bayarStr);
+     const kembalian = data.kembalian || 0;
+     const kembaliStr = formatNumberOnly(kembalian);
+     addLine('KEMBALI : Rp ' + ' '.repeat(16 - kembaliStr.length) + kembaliStr);
      
      addLine('');
      
