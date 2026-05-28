@@ -486,7 +486,11 @@
               }
             },
             scales: {
-              y: { beginAtZero: true, ticks: { callback: function(value) { return 'Rp ' + (value/1000) + 'k'; } } },
+              y: { beginAtZero: true, ticks: { callback: function(value) { 
+                if (value >= 1000000) return 'Rp ' + (value/1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+                if (value >= 1000) return 'Rp ' + (value/1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                return 'Rp ' + value; 
+              } } },
               x: { grid: { display: false } }
             }
           }
@@ -517,7 +521,8 @@
           lowStockProducts.forEach(p => {
             const div = document.createElement('div');
             div.className = "flex justify-between items-center p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition";
-            div.innerHTML = `<div><p class="font-medium text-slate-800">${p.NAMA_PRODUK}</p><p class="text-xs text-slate-400 font-mono">${p.BARCODE || p.ID_PRODUK}</p></div><div class="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-bold">Sisa ${p.STOK}</div>`;
+            const subTitle = p.BARCODE ? p.BARCODE : (p.KATEGORI ? p.KATEGORI : p.SATUAN);
+            div.innerHTML = `<div><p class="font-medium text-slate-800">${p.NAMA_PRODUK}</p><p class="text-xs text-slate-400">${subTitle}</p></div><div class="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-bold">Sisa ${p.STOK}</div>`;
             stockList.appendChild(div);
           });
         }

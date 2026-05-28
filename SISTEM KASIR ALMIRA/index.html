@@ -194,7 +194,7 @@
 <div class="space-y-8">
   <div class="flex flex-col gap-1">
     <div class="flex items-center justify-between w-full">
-      <h1 class="text-xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
+      <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Hallo Bos 👋</h1>
       <button onclick="toggleDashBalanceVisibility(event)" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl transition-colors shadow-sm flex items-center gap-2 px-3">
         <i id="dash-eye-icon" class="ri-eye-line"></i> <span class="text-xs font-bold" id="dash-eye-text">Sembunyikan</span>
       </button>
@@ -204,24 +204,24 @@
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Card 1 -->
-    <div onclick="loadPage('report')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 cursor-pointer transition-all duration-300">
-      <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-2xl"><i class="ri-money-dollar-circle-fill"></i></div>
+    <div onclick="loadPage('report')" class="bg-gradient-to-br from-white to-sky-50 p-6 rounded-3xl shadow-soft border border-sky-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-sky-300 cursor-pointer transition-all duration-300">
+      <div class="w-14 h-14 rounded-2xl bg-sky-500 text-white flex items-center justify-center text-2xl shadow-sm"><i class="ri-money-dollar-circle-fill"></i></div>
       <div class="flex flex-col">
         <p class="text-sm text-slate-500 font-bold mb-1">Pendapatan Hari Ini</p>
         <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="dash-today-sales">Rp 0</h3>
       </div>
     </div>
     <!-- Card 2 -->
-    <div onclick="loadPage('report')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-green-500/30 cursor-pointer transition-all duration-300">
-      <div class="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 text-2xl"><i class="ri-wallet-3-fill"></i></div>
+    <div onclick="loadPage('report')" class="bg-gradient-to-br from-white to-green-50 p-6 rounded-3xl shadow-soft border border-green-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-green-300 cursor-pointer transition-all duration-300">
+      <div class="w-14 h-14 rounded-2xl bg-green-500 text-white flex items-center justify-center text-2xl shadow-sm"><i class="ri-wallet-3-fill"></i></div>
       <div class="flex flex-col">
         <p class="text-sm text-slate-500 font-bold mb-1">Laba Hari Ini</p>
         <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="dash-today-profit">Rp 0</h3>
       </div>
     </div>
     <!-- Card 3 -->
-    <div onclick="loadPage('report')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-purple-500/30 cursor-pointer transition-all duration-300">
-      <div class="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 text-2xl"><i class="ri-shopping-bag-3-fill"></i></div>
+    <div onclick="loadPage('report')" class="bg-gradient-to-br from-white to-purple-50 p-6 rounded-3xl shadow-soft border border-purple-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-purple-300 cursor-pointer transition-all duration-300">
+      <div class="w-14 h-14 rounded-2xl bg-purple-500 text-white flex items-center justify-center text-2xl shadow-sm"><i class="ri-shopping-bag-3-fill"></i></div>
       <div class="flex flex-col">
         <p class="text-sm text-slate-500 font-bold mb-1">Transaksi Hari Ini</p>
         <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="dash-today-orders">0</h3>
@@ -230,22 +230,22 @@
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden flex flex-col">
+      <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white">
+        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i class="ri-error-warning-fill text-red-500"></i> Stok Menipis</h2>
+        <button onclick="loadPage('product')" class="text-primary text-sm font-bold bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-xl transition-colors">Kelola</button>
+      </div>
+      <div class="flex-1 p-2 flex flex-col overflow-y-auto max-h-[300px] overscroll-y-contain" id="dash-low-stock-list">
+         <div class="p-8 flex-1 flex items-center justify-center text-slate-400 font-medium">Memuat data...</div>
+      </div>
+    </div>
+
     <div class="lg:col-span-2 bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden flex flex-col p-6">
       <div class="flex justify-between items-center mb-6">
         <h2 class="font-bold text-slate-800 text-lg">Tren Penjualan (7 Hari Terakhir)</h2>
       </div>
       <div class="relative h-[280px] w-full">
         <canvas id="sales-chart"></canvas>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden flex flex-col">
-      <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white">
-        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i class="ri-error-warning-fill text-red-500"></i> Stok Menipis</h2>
-        <button onclick="loadPage('product')" class="text-primary text-sm font-bold bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-xl transition-colors">Kelola</button>
-      </div>
-      <div class="flex-1 p-2 flex flex-col overflow-y-auto max-h-[300px]" id="dash-low-stock-list">
-         <div class="p-8 flex-1 flex items-center justify-center text-slate-400 font-medium">Memuat data...</div>
       </div>
     </div>
   </div>
@@ -432,7 +432,7 @@
       <button onclick="loadProductsTable()" class="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" title="Muat Ulang"><i class="ri-refresh-line text-xl"></i></button>
     </div>
     
-    <div class="overflow-x-auto flex-1 h-[calc(100vh-250px)]">
+    <div class="overflow-x-auto overflow-y-auto flex-1 h-[calc(100vh-250px)] overscroll-y-contain pb-24">
       <table class="w-full text-left whitespace-nowrap">
         <thead class="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md shadow-sm text-slate-400 font-bold text-xs uppercase tracking-wider">
           <tr>
