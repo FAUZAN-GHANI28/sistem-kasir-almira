@@ -521,8 +521,7 @@
           lowStockProducts.forEach(p => {
             const div = document.createElement('div');
             div.className = "flex justify-between items-center p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition";
-            const subTitle = p.BARCODE ? p.BARCODE : (p.KATEGORI ? p.KATEGORI : p.SATUAN);
-            div.innerHTML = `<div><p class="font-medium text-slate-800">${p.NAMA_PRODUK}</p><p class="text-xs text-slate-400">${subTitle}</p></div><div class="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-bold">Sisa ${p.STOK}</div>`;
+            div.innerHTML = `<div><p class="font-medium text-slate-800">${p.NAMA_PRODUK}</p></div><div class="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-bold">Sisa ${p.STOK}</div>`;
             stockList.appendChild(div);
           });
         }
@@ -996,7 +995,7 @@
     executeCheckout();
   }
 
-  window.handleCheckout = function() {
+  window.processCheckout = function() {
     if(navigator.vibrate) navigator.vibrate(50);
     if(cart.length === 0) return;
     let total = cart.reduce((sum, item) => sum + (item.HARGA_JUAL * item.qty), 0);
