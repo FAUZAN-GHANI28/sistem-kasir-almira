@@ -220,7 +220,7 @@
     if(page === 'dashboard' && typeof loadDashboardData === 'function') loadDashboardData();
     if(page === 'product' && typeof loadProductsTable === 'function') loadProductsTable();
     if(page === 'report' && typeof loadReportLogic === 'function') loadReportLogic();
-    if(page === 'cashier' && typeof loadCashierProducts === 'function') loadCashierProducts();
+    if(page === 'cashier' && typeof initCashier === 'function') initCashier();
 
     
     // Load settings if not loaded yet
@@ -1598,9 +1598,12 @@
       showToast('Masukkan nominal lebih dari Rp 0', 'error');
       return;
     }
+    const nameInput = document.getElementById('manual-name-input');
+    const customName = nameInput && nameInput.value.trim() !== '' ? nameInput.value.trim() : 'Transaksi Manual';
+    
     const product = {
       ID_PRODUK: 'MANUAL_' + Date.now(),
-      NAMA_PRODUK: 'Transaksi Manual',
+      NAMA_PRODUK: customName,
       KODE_BARANG: 'MANUAL',
       HARGA_JUAL: amount,
       qty: 1
@@ -1608,6 +1611,7 @@
     addToCart(product);
     showToast('Berhasil ditambahkan ke keranjang', 'success');
     manualInput = "0";
+    if(nameInput) nameInput.value = '';
     updateManualDisplay();
   }
 
