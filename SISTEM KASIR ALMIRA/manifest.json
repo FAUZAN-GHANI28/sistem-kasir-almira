@@ -18,5 +18,14 @@
       "type": "image/png"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "Buka Kasir",
+      "short_name": "Kasir",
+      "description": "Buka layar transaksi kasir",
+      "url": "./index.html",
+      "icons": [{ "src": "./icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
   "orientation": "portrait"
 }

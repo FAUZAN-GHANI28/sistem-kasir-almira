@@ -1,11 +1,12 @@
-const CACHE_NAME = 'almira-pos-v1';
+const CACHE_NAME = 'almira-pos-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './main.js',
   './manifest.json',
   './icon-192x192.png',
-  './icon-512x512.png'
+  './icon-512x512.png',
+  './offline.html'
 ];
 
 // Install Event: Cache assets
@@ -52,13 +53,10 @@ self.addEventListener('fetch', (event) => {
       }
       
       // Otherwise fetch from network
-      return fetch(event.request).then((networkResponse) => {
-        // Optionally cache new dynamic assets here if needed
-        return networkResponse;
-      }).catch(() => {
-        // If offline and fetching failed, return index.html for navigation requests
+      return fetch(event.request).catch(() => {
+        // If offline and fetching failed, return offline.html for navigation requests
         if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
+          return caches.match('./offline.html');
         }
       });
     })
