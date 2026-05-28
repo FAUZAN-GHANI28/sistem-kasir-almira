@@ -215,7 +215,7 @@
 
     if(page === 'dashboard' && typeof loadDashboardData === 'function') loadDashboardData();
     if(page === 'product' && typeof loadProductsTable === 'function') loadProductsTable();
-    if(page === 'report' && typeof loadReports === 'function') loadReports();
+    if(page === 'report' && typeof loadReportLogic === 'function') loadReportLogic();
     if(page === 'cashier' && typeof loadCashierProducts === 'function') loadCashierProducts();
 
     
@@ -1666,7 +1666,7 @@
      
      const add = (arr) => { for(let b of arr) bytes.push(b); };
      const addText = (text) => { add(encoder.encode(text)); };
-     const addLine = (text) => { addText(text + '\\n'); };
+     const addLine = (text) => { addText(text + '\n'); };
      
      // Initialize
      add([0x1B, 0x40]); 
