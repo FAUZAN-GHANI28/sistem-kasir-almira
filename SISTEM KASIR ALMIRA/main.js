@@ -10,19 +10,23 @@
   let realtimeChannel = null;
   function setupRealtime() {
     if (realtimeChannel) return; // Prevent multiple subscriptions
+    let debounceTimer;
     realtimeChannel = supabaseClient.channel('public:master_barang')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'master_barang' }, payload => {
-        // Refresh products and UI silently
-        if (typeof loadProductsTable === 'function' && document.getElementById('product-table-body')) {
-           loadProductsTable();
-        }
-        if (typeof initCashier === 'function' && document.getElementById('pos-product-grid')) {
-           // We just need to refresh posProducts, not the whole cashier logic
-           loadProductsData().then(data => {
-             posProducts = data;
-             renderPosProducts(posProducts);
-           });
-        }
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          // Refresh products and UI silently
+          if (typeof loadProductsTable === 'function' && document.getElementById('product-table-body')) {
+             loadProductsTable();
+          }
+          if (typeof initCashier === 'function' && document.getElementById('pos-product-grid')) {
+             // We just need to refresh posProducts, not the whole cashier logic
+             loadProductsData().then(data => {
+               posProducts = data;
+               renderPosProducts(posProducts);
+             });
+          }
+        }, 500);
       })
       .subscribe();
   }
@@ -707,6 +711,7 @@
   }
 
   function addToCart(product) {
+    if (navigator.vibrate) navigator.vibrate(50);
     const existing = cart.find(item => item.ID_PRODUK === product.ID_PRODUK);
     if (existing) existing.qty += 1; else cart.push({ ...product, qty: 1 });
     renderCart();
@@ -986,7 +991,8 @@
     executeCheckout();
   }
 
-  function processCheckout() {
+  window.handleCheckout = function() {
+    if(navigator.vibrate) navigator.vibrate(50);
     if(cart.length === 0) return;
     let total = cart.reduce((sum, item) => sum + (item.HARGA_JUAL * item.qty), 0);
     if(paymentMethod === 'QRIS') {

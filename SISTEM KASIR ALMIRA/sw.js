@@ -1,4 +1,4 @@
-const CACHE_NAME = 'almira-pos-v4';
+const CACHE_NAME = 'almira-pos-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -46,19 +46,24 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('supabase.co')) return;
 
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Return cached version if found
-      if (response) {
-        return response;
-      }
-      
-      // Otherwise fetch from network
-      return fetch(event.request).catch(() => {
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        // Update cache quietly in the background
+        if(networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+           caches.open(CACHE_NAME).then((cache) => {
+             cache.put(event.request, networkResponse.clone());
+           });
+        }
+        return networkResponse;
+      }).catch(() => {
         // If offline and fetching failed, return offline.html for navigation requests
         if (event.request.mode === 'navigate') {
           return caches.match('./offline.html');
         }
       });
+      
+      // Return cached immediately if exists, while fetching new version in background
+      return cachedResponse || fetchPromise;
     })
   );
 });
