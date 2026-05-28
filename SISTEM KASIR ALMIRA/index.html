@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f4f6fa">
+  <link rel="manifest" href='data:application/manifest+json;utf8,{"name":"Almira POS","short_name":"Almira","start_url":".","display":"standalone","background_color":"#f4f6fa","theme_color":"#0ea5e9","icons":[{"src":"https://cdn.jsdelivr.net/npm/remixicon@3.5.0/icons/System/store-2-fill.svg","sizes":"192x192","type":"image/svg+xml"},{"src":"https://cdn.jsdelivr.net/npm/remixicon@3.5.0/icons/System/store-2-fill.svg","sizes":"512x512","type":"image/svg+xml"}]}'>
+  <title>Almira POS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#0066cc', // Soft corporate blue ala Moka POS
+          secondary: '#38bdf8',
+          dark: '#1e293b',
+          background: '#f4f6fa' // Tabler soft background
+        },
+        boxShadow: {
+          'soft': '0 4px 20px rgba(0, 0, 0, 0.03)',
+          'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)'
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body, html {
+    overscroll-behavior-y: none;
+  }
+  
+  .overflow-y-auto {
+    overscroll-behavior-y: contain;
+  }
+  
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  
+  .loader {
+    border-top-color: #0ea5e9;
+    -webkit-animation: spinner 1.5s linear infinite;
+    animation: spinner 1.5s linear infinite;
+  }
+  @keyframes spinner {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .toast-enter { transform: translateY(100%); opacity: 0; }
+  .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 300ms ease-out; }
+  .toast-leave { transform: translateY(0); opacity: 1; }
+  .toast-leave-active { transform: translateY(-100%); opacity: 0; transition: all 300ms ease-in; }
+
+  @media print {
+    body * { visibility: hidden; }
+    #printable-receipt, #printable-receipt * { visibility: visible; }
+    #printable-receipt {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  }
+</style>
+
+</head>
+<body class="bg-background text-slate-800 font-sans antialiased overflow-hidden overscroll-y-none">
+  
+  <div id="main-app-container" class="flex h-screen w-full hidden">
+    <aside id="sidebar" class="w-64 bg-white border-r border-slate-100 flex-shrink-0 hidden md:flex flex-col h-full transition-all duration-300 relative z-20">
+  <div class="h-20 flex items-center justify-center px-6 border-b border-slate-50">
+    <div class="flex items-center gap-3 font-bold text-xl text-primary overflow-hidden whitespace-nowrap" id="sidebar-logo">
+      <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+        <i class="ri-store-2-fill text-2xl flex-shrink-0"></i>
+      </div>
+      <span class="sidebar-text tracking-tight">Almira POS</span>
+    </div>
+  </div>
+  <div class="p-5 flex-1 overflow-y-auto space-y-2 overflow-x-hidden font-medium">
+    <a href="#" onclick="loadPage('dashboard')" id="menu-dashboard" class="sidebar-menu flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap">
+      <i class="ri-layout-grid-fill text-xl flex-shrink-0"></i> <span class="sidebar-text">Dashboard</span>
+    </a>
+    <a href="#" onclick="loadPage('cashier')" id="menu-cashier" class="sidebar-menu flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap">
+      <i class="ri-shopping-bag-3-fill text-xl flex-shrink-0"></i> <span class="sidebar-text">Kasir</span>
+    </a>
+    <a href="#" onclick="loadPage('product')" id="menu-product" class="sidebar-menu flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap">
+      <i class="ri-box-3-fill text-xl flex-shrink-0"></i> <span class="sidebar-text">Produk</span>
+    </a>
+    <a href="#" onclick="loadPage('report')" id="menu-report" class="sidebar-menu flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap">
+      <i class="ri-bar-chart-fill text-xl flex-shrink-0"></i> <span class="sidebar-text">Laporan</span>
+    </a>
+  </div>
+  <div class="p-6 border-t border-slate-50">
+    <div class="bg-slate-50 rounded-xl p-4 flex items-center gap-3 overflow-hidden">
+      <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">A</div>
+      <div class="flex flex-col sidebar-text">
+        <span class="text-sm font-bold text-slate-800">Admin</span>
+        <span class="text-xs text-slate-500">Almira Wedi</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Global Mobile Bottom Navigation -->
+<div id="global-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 z-50 flex justify-around items-end p-2 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
+  <button onclick="loadPage('dashboard')" id="bottom-menu-dashboard" class="bottom-menu flex flex-col items-center p-2 text-slate-400 transition-colors w-16">
+    <i class="ri-layout-grid-fill text-xl mb-1"></i>
+    <span class="text-[10px] font-bold">Home</span>
+  </button>
+  
+  <button onclick="loadPage('cashier')" id="bottom-menu-cashier" class="bottom-menu flex flex-col items-center p-2 text-slate-400 transition-colors w-16">
+    <i class="ri-shopping-bag-3-fill text-xl mb-1"></i>
+    <span class="text-[10px] font-bold">Kasir</span>
+  </button>
+  
+  <button onclick="loadPage('product')" id="bottom-menu-product" class="bottom-menu flex flex-col items-center p-2 text-slate-400 transition-colors w-16">
+    <i class="ri-box-3-fill text-xl mb-1"></i>
+    <span class="text-[10px] font-bold">Produk</span>
+  </button>
+  
+  <button onclick="loadPage('report')" id="bottom-menu-report" class="bottom-menu flex flex-col items-center p-2 text-slate-400 transition-colors w-16">
+    <i class="ri-bar-chart-fill text-xl mb-1"></i>
+    <span class="text-[10px] font-bold">Laporan</span>
+  </button>
+</div>
+
+    
+    <div class="flex flex-col flex-1 h-full min-w-0">
+      <header class="h-20 bg-white/70 backdrop-blur-md border-b border-white/20 sticky top-0 z-40 flex items-center justify-between px-6 shadow-soft">
+  <div class="flex items-center gap-4">
+    <div class="w-10 h-10 bg-primary/10 rounded-xl md:hidden flex items-center justify-center text-primary">
+        <i class="ri-store-2-fill text-2xl"></i>
+    </div>
+    <div class="flex flex-col">
+      <h1 class="text-xl font-bold text-slate-800 tracking-tight">Almira POS</h1>
+      <span class="text-xs text-slate-500 font-medium hidden md:inline-block" id="current-date"></span>
+    </div>
+  </div>
+  
+  <div class="flex items-center gap-3">
+    <button onclick="checkAndInitDB()" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-primary transition-all shadow-sm font-medium text-sm">
+      <i class="ri-database-2-line"></i> <span class="hidden md:inline">Sinkronisasi</span>
+    </button>
+    <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 border border-slate-200 md:hidden font-bold">
+      A
+    </div>
+  </div>
+</header>
+
+<script>
+  // Update date
+  const dateEl = document.getElementById('current-date');
+  if (dateEl) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    dateEl.innerText = new Date().toLocaleDateString('id-ID', options);
+  }
+</script>
+
+      
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 relative">
+        <div id="app-content" class="h-full">
+<div id="page-dashboard" class="page-view hidden w-full h-full">
+<div class="space-y-8">
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center justify-between w-full">
+      <h1 class="text-xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
+      <button onclick="toggleDashBalanceVisibility(event)" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl transition-colors shadow-sm flex items-center gap-2 px-3">
+        <i id="dash-eye-icon" class="ri-eye-line"></i> <span class="text-xs font-bold" id="dash-eye-text">Sembunyikan</span>
+      </button>
+    </div>
+    <p class="text-sm text-slate-500 font-medium mt-0.5">Ringkasan performa hari ini</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Card 1 -->
+    <div onclick="loadPage('report')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 cursor-pointer transition-all duration-300">
+      <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-2xl"><i class="ri-money-dollar-circle-fill"></i></div>
+      <div class="flex flex-col">
+        <p class="text-sm text-slate-500 font-bold mb-1">Pendapatan Hari Ini</p>
+        <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="dash-today-sales">Rp 0</h3>
+      </div>
+    </div>
+    <!-- Card 2 -->
+    <div onclick="loadPage('report')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-green-500/30 cursor-pointer transition-all duration-300">
+      <div class="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 text-2xl"><i class="ri-wallet-3-fill"></i></div>
+      <div class="flex flex-col">
+        <p class="text-sm text-slate-500 font-bold mb-1">Laba Hari Ini</p>
+        <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="dash-today-profit">Rp 0</h3>
+      </div>
+    </div>
+    <!-- Card 3 -->
+    <div onclick="loadPage('report')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 flex items-center gap-5 hover:-translate-y-1 hover:shadow-lg hover:border-purple-500/30 cursor-pointer transition-all duration-300">
+      <div class="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 text-2xl"><i class="ri-shopping-bag-3-fill"></i></div>
+      <div class="flex flex-col">
+        <p class="text-sm text-slate-500 font-bold mb-1">Transaksi Hari Ini</p>
+        <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="dash-today-orders">0</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden flex flex-col p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="font-bold text-slate-800 text-lg">Tren Penjualan (7 Hari Terakhir)</h2>
+      </div>
+      <div class="relative h-[280px] w-full">
+        <canvas id="sales-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden flex flex-col">
+      <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white">
+        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i class="ri-error-warning-fill text-red-500"></i> Stok Menipis</h2>
+        <button onclick="loadPage('product')" class="text-primary text-sm font-bold bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-xl transition-colors">Kelola</button>
+      </div>
+      <div class="flex-1 p-2 flex flex-col overflow-y-auto max-h-[300px]" id="dash-low-stock-list">
+         <div class="p-8 flex-1 flex items-center justify-center text-slate-400 font-medium">Memuat data...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="page-cashier" class="page-view hidden w-full h-full">
+<div class="h-full flex flex-col lg:flex-row gap-6 lg:p-2 relative overflow-hidden bg-slate-50 lg:bg-transparent pb-[72px] lg:pb-0">
+
+  <!-- Kiri: Area Kerja (Manual / Katalog) -->
+  <div class="flex-1 flex flex-col min-w-0 h-full relative bg-slate-50 lg:bg-transparent rounded-b-3xl lg:rounded-none">
+    
+    <!-- Tabs Nav (Manual vs Katalog) -->
+    <div class="flex bg-white rounded-xl shadow-sm mb-3 border border-slate-100 overflow-hidden shrink-0 mx-4 mt-4 lg:mx-0 lg:mt-0">
+      <button onclick="switchKasirMode('manual')" id="tab-manual" class="flex-1 py-3 flex items-center justify-center gap-2 text-primary bg-primary/5 font-bold transition-all border-b-2 border-primary">
+        <i class="ri-calculator-line text-lg"></i> Manual
+      </button>
+      <button onclick="switchKasirMode('katalog')" id="tab-katalog" class="flex-1 py-3 flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-50 font-medium transition-all border-b-2 border-transparent">
+        <i class="ri-list-check-2 text-lg"></i> Katalog
+      </button>
+    </div>
+
+    <!-- Small Cart Indicator (Right below Tabs) -->
+    <div id="mobile-cart-bar-container" class="lg:hidden shrink-0 px-4 mb-2 hidden">
+       <button onclick="toggleMobileCart()" class="w-full bg-slate-800 text-white py-2.5 px-3 rounded-xl shadow-sm flex justify-between items-center active:scale-95 transition-all">
+          <div class="flex items-center gap-3">
+             <div class="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center font-bold text-xs">
+                <span id="mobile-cart-count">0</span>
+             </div>
+             <div class="font-bold text-sm text-sky-400" id="mobile-cart-total-bar">Rp 0</div>
+          </div>
+          <div class="font-bold text-xs flex items-center gap-1 text-white/80">
+             Cek Keranjang <i class="ri-arrow-right-s-line text-sm"></i>
+          </div>
+       </button>
+    </div>
+
+    <!-- Area Mode Katalog -->
+    <div id="mode-katalog" class="flex-1 flex flex-col min-h-0 bg-white lg:bg-transparent hidden rounded-t-3xl lg:rounded-none">
+      
+      <!-- Search (Katalog) -->
+      <div class="flex bg-white/80 backdrop-blur-md p-2 pl-4 pr-2 lg:rounded-2xl shadow-sm gap-3 items-center border-b lg:border border-slate-100 shrink-0">
+        <i class="ri-search-line text-slate-400 text-xl"></i>
+        <div class="relative flex-1">
+          <input type="text" id="pos-search" placeholder="Cari produk..." class="w-full py-2 bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 placeholder-slate-400 font-medium" autocomplete="off">
+          <div id="search-dropdown" class="absolute z-50 left-0 right-0 top-full mt-3 bg-white/90 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-glass hidden flex-col overflow-y-auto max-h-64 p-2 gap-1"></div>
+        </div>
+        <button class="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all"><i class="ri-barcode-box-line text-xl"></i></button>
+      </div>
+
+      <!-- List Produk (Katalog) -->
+      <div class="flex-1 overflow-y-auto lg:bg-transparent p-1 lg:pb-4">
+        <div id="pos-product-grid" class="flex flex-col lg:grid lg:grid-cols-3 gap-0 lg:gap-4 divide-y divide-slate-100 lg:divide-y-0 pb-6">
+          <!-- Produk akan dirender di sini via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Area Mode Manual (Kalkulator) -->
+    <div id="mode-manual" class="flex-1 flex flex-col min-h-0 bg-white lg:bg-transparent rounded-t-3xl lg:rounded-none">
+      <!-- Input Display -->
+      <div class="flex flex-col justify-end p-6 pb-6 text-right bg-white lg:bg-transparent shrink-0 min-h-[100px]">
+        <div class="text-slate-400 text-sm font-medium mb-1">Total Transaksi Manual</div>
+        <div id="manual-display" class="text-5xl font-black text-slate-300 break-all tracking-tight">Rp 0</div>
+      </div>
+      
+      <!-- Numpad -->
+      <div class="flex-1 flex flex-col bg-white border-t border-slate-100 lg:rounded-2xl lg:border lg:shadow-soft shrink-0 min-h-[300px]">
+        <div class="flex-1 grid grid-cols-4 grid-rows-4 divide-x divide-y divide-slate-100">
+          <!-- row 1 -->
+          <button onclick="numpadPress('1')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">1</button>
+          <button onclick="numpadPress('2')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">2</button>
+          <button onclick="numpadPress('3')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">3</button>
+          <button onclick="numpadPress('backspace')" class="text-xl font-bold text-slate-500 hover:bg-slate-50 active:bg-slate-100 row-span-2 flex items-center justify-center transition-colors"><i class="ri-delete-back-2-line text-2xl"></i></button>
+          <!-- row 2 -->
+          <button onclick="numpadPress('4')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">4</button>
+          <button onclick="numpadPress('5')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">5</button>
+          <button onclick="numpadPress('6')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">6</button>
+          <!-- row 3 -->
+          <button onclick="numpadPress('7')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">7</button>
+          <button onclick="numpadPress('8')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">8</button>
+          <button onclick="numpadPress('9')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">9</button>
+          <button onclick="addManualToCart()" class="text-sm font-bold text-white bg-slate-400 hover:bg-primary transition-colors row-span-2 flex flex-col gap-1 items-center justify-center" id="btn-tambah-manual">
+            <i class="ri-add-line text-xl"></i> Tambah
+          </button>
+          <!-- row 4 -->
+          <button onclick="numpadPress('C')" class="text-2xl font-bold text-red-400 hover:bg-red-50 active:bg-red-100 transition-colors">C</button>
+          <button onclick="numpadPress('0')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">0</button>
+          <button onclick="numpadPress('000')" class="text-2xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors">000</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- Kanan: Keranjang (Sidebar Desktop / Fullscreen Mobile) -->
+  <div id="cart-sidebar" class="fixed inset-0 lg:relative lg:inset-auto z-[60] lg:z-10 w-full lg:w-[420px] flex-shrink-0 bg-white lg:bg-white/90 lg:backdrop-blur-md lg:rounded-3xl shadow-glass flex flex-col h-full border-l lg:border border-white/50 transition-transform duration-300 translate-y-full lg:translate-y-0">
+    
+    <!-- Header Keranjang -->
+    <div class="p-4 lg:p-5 flex justify-between items-center bg-white border-b border-slate-50 z-10 shadow-sm lg:shadow-none">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileCart()" class="lg:hidden w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 transition-colors">
+          <i class="ri-arrow-left-line text-xl"></i>
+        </button>
+        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary/10 text-primary items-center justify-center hidden lg:flex"><i class="ri-shopping-cart-2-fill"></i></div> 
+          Pesanan
+        </h2>
+      </div>
+      <button onclick="clearCart()" class="text-sm font-medium text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">Kosongkan</button>
+    </div>
+    
+    <!-- Empty State -->
+    <div id="empty-cart-msg" class="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60 hidden">
+      <div class="w-24 h-24 mb-4 bg-slate-50 rounded-full flex items-center justify-center">
+        <i class="ri-shopping-cart-line text-5xl text-slate-300"></i>
+      </div>
+      <p class="font-medium">Belum ada pesanan</p>
+    </div>
+
+    <!-- Daftar Item -->
+    <div id="cart-items" class="flex-1 overflow-y-auto p-2 space-y-1">
+      <!-- Item dirender via JS -->
+    </div>
+    
+    <!-- Footer Keranjang (Total & Bayar) -->
+    <div class="bg-white p-4 lg:p-5 pb-8 lg:pb-5 rounded-b-none lg:rounded-b-3xl border-t border-slate-50 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.06)]">
+      
+      <div class="flex justify-between text-slate-500 font-medium mb-1">
+        <span>Subtotal</span>
+        <span id="cart-subtotal">Rp 0</span>
+      </div>
+      <div class="flex justify-between items-end mb-5">
+        <span class="text-slate-800 font-bold text-lg">Total Transaksi</span>
+        <span id="cart-total" class="text-3xl font-black text-primary tracking-tight">Rp 0</span>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-3 mb-4">
+         <button onclick="setPaymentMethod('CASH')" id="btn-pay-cash" class="py-3 border-2 border-primary bg-primary/5 text-primary font-bold rounded-xl transition-all shadow-sm">CASH</button>
+         <button onclick="setPaymentMethod('QRIS')" id="btn-pay-qris" class="py-3 border-2 border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-50 font-bold rounded-xl transition-all">QRIS</button>
+      </div>
+
+      <div id="cash-payment-section" class="mb-5 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100 hidden">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-bold text-slate-600">Uang Diterima</span>
+          <div class="relative w-1/2">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">Rp</span>
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="input-uang-diterima" oninput="calculateKembalian()" placeholder="0" class="w-full pl-9 pr-3 py-2 text-right border-none bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-bold text-slate-800 shadow-sm transition-all">
+          </div>
+        </div>
+        <div class="flex justify-between items-center pt-2 border-t border-slate-200/60">
+          <span class="text-sm font-bold text-slate-600">Kembalian</span>
+          <span id="text-kembalian" class="font-bold text-green-500 text-xl">Rp 0</span>
+        </div>
+      </div>
+
+      <button onclick="processCheckout()" id="btn-checkout" class="w-full bg-primary hover:bg-[#005bb5] active:scale-[0.98] text-white font-bold py-4 rounded-xl shadow-[0_8px_20px_rgba(0,102,204,0.3)] transition-all disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2">
+        <i class="ri-secure-payment-line text-xl"></i> BAYAR SEKARANG
+      </button>
+    </div>
+  </div>
+
+</div>
+
+</div>
+<div id="page-product" class="page-view hidden w-full h-full">
+<div class="space-y-4 flex flex-col h-full">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <div class="flex flex-col">
+      <h1 class="text-xl font-bold text-slate-800 tracking-tight">Manajemen Produk</h1>
+      <p class="text-sm text-slate-500 font-medium mt-0.5">Kelola daftar produk dan inventori</p>
+    </div>
+    <button onclick="openProductModal()" class="bg-primary hover:bg-[#005bb5] active:scale-95 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-[0_4px_10px_rgba(0,102,204,0.25)] flex items-center gap-2">
+      <i class="ri-add-line text-base"></i> Tambah Produk
+    </button>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-soft border border-slate-100 flex-1 flex flex-col overflow-hidden">
+    <div class="p-5 border-b border-slate-50 flex items-center gap-4">
+      <div class="relative w-full max-w-md">
+        <i class="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+        <input type="text" id="search-product" placeholder="Cari berdasarkan nama atau barcode..." class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-slate-700">
+      </div>
+      <button onclick="loadProductsTable()" class="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" title="Muat Ulang"><i class="ri-refresh-line text-xl"></i></button>
+    </div>
+    
+    <div class="overflow-x-auto flex-1 h-[calc(100vh-250px)]">
+      <table class="w-full text-left whitespace-nowrap">
+        <thead class="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md shadow-sm text-slate-400 font-bold text-xs uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-5 hidden md:table-cell rounded-tl-xl">Kode / Barcode</th>
+            <th class="px-6 py-5 rounded-tl-xl md:rounded-none">Nama Produk</th>
+            <th class="px-6 py-5 text-right">Harga Beli</th>
+            <th class="px-6 py-5 text-right">Harga Jual</th>
+            <th class="px-6 py-5 text-center">Stok</th>
+            <th class="px-6 py-5 text-center w-24 rounded-tr-xl">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="product-table-body" class="divide-y divide-slate-50 text-slate-700 font-medium bg-white">
+          <!-- Render via JS -->
+          <tr><td colspan="6" class="p-10 text-center text-slate-400">Memuat data produk...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="page-report" class="page-view hidden w-full h-full">
+<div class="space-y-6 flex flex-col h-full">
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center justify-between w-full">
+      <h1 class="text-xl font-bold text-slate-800 tracking-tight">Laporan Penjualan</h1>
+      <button onclick="toggleBalanceVisibility()" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl transition-colors shadow-sm flex items-center gap-2 px-3">
+        <i id="eye-icon" class="ri-eye-line"></i> <span class="text-xs font-bold" id="eye-text">Sembunyikan</span>
+      </button>
+    </div>
+    <p class="text-sm text-slate-500 font-medium mt-0.5">Riwayat transaksi dan histori penjualan</p>
+  </div>
+
+  <!-- Kartu Ringkasan Laba Rugi (Scroll Horizontal & Bisa Disembunyikan) -->
+  <style>
+    .summary-collapse {
+      transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin 0.4s ease-in-out;
+      overflow: hidden;
+    }
+    .summary-collapsed {
+      max-height: 0 !important;
+      opacity: 0 !important;
+      margin-top: -0.5rem !important;
+      padding-bottom: 0 !important;
+    }
+  </style>
+  <div id="summary-cards-wrapper" class="summary-collapse" style="max-height: 300px; opacity: 1;">
+    <div class="flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar">
+    <div class="snap-start shrink-0 w-[80%] md:w-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+      <div class="flex items-center gap-2 mb-1.5"><i class="ri-wallet-3-line text-blue-500 text-sm"></i><span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Penjualan</span></div>
+      <span id="summary-sales" class="text-xl font-black text-slate-800">Rp 0</span>
+    </div>
+    <div class="snap-start shrink-0 w-[80%] md:w-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+      <div class="flex items-center gap-2 mb-1.5"><i class="ri-shopping-bag-3-line text-red-500 text-sm"></i><span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Modal (HPP)</span></div>
+      <span id="summary-cogs" class="text-xl font-black text-slate-800">Rp 0</span>
+    </div>
+    <div class="snap-start shrink-0 w-[80%] md:w-auto bg-gradient-to-br from-emerald-500 to-teal-600 p-4 rounded-2xl shadow-sm border border-emerald-400 flex flex-col justify-center relative overflow-hidden">
+      <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+      <div class="flex items-center gap-2 mb-1.5 relative z-10"><i class="ri-funds-line text-white/90 text-sm"></i><span class="text-xs text-white/90 font-bold uppercase tracking-wider">Laba Bersih</span></div>
+      <span id="summary-profit" class="text-xl font-black text-white relative z-10">Rp 0</span>
+    </div>
+  </div>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-soft border border-slate-100 flex-1 flex flex-col overflow-hidden">
+    <div class="p-4 border-b border-slate-50 flex flex-col justify-between items-start bg-white gap-3">
+      <h2 class="font-bold text-slate-800 text-lg">Semua Transaksi</h2>
+      
+      <!-- Filter & Search -->
+      <div class="flex flex-col md:flex-row gap-3 w-full">
+        <!-- Date Filter -->
+        <div class="flex items-center gap-2">
+           <input type="date" id="filter-start" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-full md:w-auto">
+           <span class="text-slate-400 font-bold text-sm">-</span>
+           <input type="date" id="filter-end" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-full md:w-auto">
+        </div>
+        
+        <!-- Search Input -->
+        <div class="flex items-center gap-2 flex-1 w-full">
+           <div class="relative flex-1">
+             <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+             <input type="text" id="report-search" placeholder="Cari barang, metode, atau ID..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" onkeyup="applyReportFilter()">
+           </div>
+           <button onclick="applyReportFilter()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-[#005bb5] transition-colors shrink-0">Filter</button>
+           <button onclick="loadReportLogic()" class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors shrink-0" title="Muat Ulang"><i class="ri-refresh-line text-xl"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="overflow-x-auto flex-1 h-[calc(100vh-200px)] p-2">
+      <table class="w-full text-left whitespace-nowrap">
+        <thead class="sticky top-0 z-10 bg-white shadow-sm border-b border-slate-100 text-slate-400 font-bold text-xs uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-4">Tanggal & Waktu</th>
+            <th class="px-6 py-4">Daftar Barang</th>
+            <th class="px-6 py-4 text-center">Metode</th>
+            <th class="px-6 py-4 text-right">Total Transaksi</th>
+          </tr>
+        </thead>
+        <tbody id="report-table-body" class="divide-y divide-slate-50 text-slate-700 font-medium bg-white">
+          <tr><td colspan="4" class="p-10 text-center text-slate-400">Memuat laporan...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Halaman Login -->
+  <div id="auth-container" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative">
+    
+    <!-- Top Pattern/Graphic -->
+    <div class="h-24 bg-blue-600 bg-opacity-10 absolute top-0 left-0 right-0 z-0">
+      <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full opacity-20 blur-2xl"></div>
+      <div class="absolute top-10 -left-10 w-32 h-32 bg-indigo-500 rounded-full opacity-20 blur-2xl"></div>
+    </div>
+
+    <div class="p-8 relative z-10 pt-12">
+      <!-- Logo/Brand -->
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
+          <i class="ri-store-2-line"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">Almira POS</h1>
+        <p class="text-slate-500 text-sm mt-1" id="auth-subtitle">Masuk untuk mengelola kasir Anda</p>
+      </div>
+
+      <!-- Formulir Login -->
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="ri-mail-line"></i>
+              </span>
+              <input type="email" id="login-email" required class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white" placeholder="admin@toko.com">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="ri-lock-password-line"></i>
+              </span>
+              <input type="password" id="login-password" required class="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white" placeholder="••••••••">
+              <button type="button" onclick="togglePassword('login-password')" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
+                <i class="ri-eye-line" id="icon-login-password"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="login-remember" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+              <span class="text-slate-600">Ingat Saya</span>
+            </label>
+            <button type="button" onclick="switchAuthView('forgot')" class="text-blue-600 font-medium hover:text-blue-700">Lupa Sandi?</button>
+          </div>
+          <button type="submit" id="btn-login" class="w-full py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm mt-4 flex justify-center items-center gap-2">
+            Masuk <i class="ri-arrow-right-line"></i>
+          </button>
+        </div>
+        <p class="text-center text-sm text-slate-500 mt-6">
+          Belum punya akun? <button type="button" onclick="switchAuthView('register')" class="text-blue-600 font-medium hover:text-blue-700">Daftar sekarang</button>
+        </p>
+      </form>
+
+      <!-- Formulir Daftar -->
+      <form id="form-register" onsubmit="handleRegister(event)" class="hidden">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="ri-mail-line"></i>
+              </span>
+              <input type="email" id="register-email" required class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white" placeholder="nama@email.com">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="ri-lock-password-line"></i>
+              </span>
+              <input type="password" id="register-password" required minlength="6" class="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white" placeholder="Min. 6 karakter">
+              <button type="button" onclick="togglePassword('register-password')" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
+                <i class="ri-eye-line" id="icon-register-password"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" id="btn-register" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-sm mt-4 flex justify-center items-center gap-2">
+            Buat Akun <i class="ri-user-add-line"></i>
+          </button>
+        </div>
+        <p class="text-center text-sm text-slate-500 mt-6">
+          Sudah punya akun? <button type="button" onclick="switchAuthView('login')" class="text-blue-600 font-medium hover:text-blue-700">Kembali ke Login</button>
+        </p>
+      </form>
+
+      <!-- Formulir Lupa Sandi -->
+      <form id="form-forgot" onsubmit="handleForgotPassword(event)" class="hidden">
+        <div class="text-sm text-slate-600 mb-4 text-center">
+          Masukkan email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi.
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="ri-mail-line"></i>
+              </span>
+              <input type="email" id="forgot-email" required class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white" placeholder="admin@toko.com">
+            </div>
+          </div>
+          <button type="submit" id="btn-forgot" class="w-full py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-900 transition-colors shadow-sm mt-4">
+            Kirim Tautan Reset
+          </button>
+        </div>
+        <p class="text-center text-sm text-slate-500 mt-6">
+          <button type="button" onclick="switchAuthView('login')" class="text-blue-600 font-medium hover:text-blue-700 flex items-center justify-center gap-1 mx-auto">
+            <i class="ri-arrow-left-line"></i> Kembali ke Login
+          </button>
+        </p>
+      </form>
+      
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchAuthView(view) {
+    document.getElementById('form-login').classList.add('hidden');
+    document.getElementById('form-register').classList.add('hidden');
+    document.getElementById('form-forgot').classList.add('hidden');
+    
+    const subtitle = document.getElementById('auth-subtitle');
+    
+    if (view === 'login') {
+      document.getElementById('form-login').classList.remove('hidden');
+      subtitle.innerText = 'Masuk untuk mengelola kasir Anda';
+    } else if (view === 'register') {
+      document.getElementById('form-register').classList.remove('hidden');
+      subtitle.innerText = 'Daftarkan akun baru toko Anda';
+    } else if (view === 'forgot') {
+      document.getElementById('form-forgot').classList.remove('hidden');
+      subtitle.innerText = 'Atur ulang kata sandi';
+    }
+  }
+
+  function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById('icon-' + inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('ri-eye-line');
+      icon.classList.add('ri-eye-off-line');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('ri-eye-off-line');
+      icon.classList.add('ri-eye-line');
+    }
+  }
+</script>
+
+
+  <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+  <div id="global-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all duration-300" onclick="if(event.target === this) closeModal()">
+  <div class="bg-white rounded-3xl shadow-glass w-full max-w-md mx-4 overflow-hidden transform transition-all scale-95 opacity-0 duration-300 border border-white/50" id="modal-content">
+    <div class="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-white">
+      <h3 class="text-lg font-bold text-slate-800" id="modal-title">Modal Title</h3>
+      <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-white hover:bg-red-500 transition-colors">
+        <i class="ri-close-line text-lg"></i>
+      </button>
+    </div>
+    <div class="p-6 bg-slate-50/50" id="modal-body">
+    </div>
+  </div>
+</div>
+
+
+<!-- QRIS Modal -->
+<div id="qris-modal" style="z-index: 9999;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="if(event.target === this) closeQrisModal()">
+  <div id="qris-content" class="bg-white rounded-3xl shadow-glass border border-white/50 w-full max-w-md shadow-2xl overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300">
+    <div class="p-4 border-b border-slate-50 flex justify-between items-center bg-white">
+      <h2 class="text-xl font-bold text-slate-800">Scan QRIS</h2>
+      <button onclick="closeQrisModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-white hover:bg-red-500 transition">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="p-8 flex flex-col items-center">
+      <p class="text-slate-600 mb-4 text-center">Silakan minta pelanggan scan kode QR di bawah ini untuk membayar sebesar <br><strong id="qris-amount" class="text-primary text-3xl mt-2 block"></strong></p>
+      <div class="flex justify-center w-full my-4 bg-white p-2 rounded-xl border-4 border-slate-100"><canvas id="qris-canvas"></canvas></div>
+      <div class="mt-6 w-full gap-2 flex">
+        <button onclick="closeQrisModal()" class="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 font-bold transition">Batal</button>
+        <button onclick="confirmQrisPayment()" class="flex-1 px-4 py-3 bg-primary text-white rounded-xl hover:bg-secondary font-bold transition">Sudah Dibayar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div id="receipt-modal" style="z-index: 9999;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div id="receipt-content" class="bg-white rounded-xl shadow-2xl border border-white/50 w-full max-w-sm overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300">
+    <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50 print:hidden">
+      <h2 class="text-lg font-bold text-slate-800">Struk Transaksi</h2>
+      <button onclick="closeReceiptModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:text-white hover:bg-red-500 transition">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    
+    <!-- Printable Area -->
+    <div id="printable-receipt" class="p-6 bg-white text-black font-mono text-sm mx-auto" style="width: 100%; max-width: 300px;">
+      <div class="text-center mb-4 border-b-2 border-dashed border-slate-300 pb-4">
+        <h2 id="receipt-toko-name" class="text-xl font-bold uppercase mb-1">ALMIRA POS</h2>
+        <p id="receipt-toko-alamat" class="text-xs">Toko / Warung Kelontong</p>
+      </div>
+      
+
+      
+      <div class="border-t border-b border-dashed border-slate-300 py-2 my-2">
+        <table class="w-full text-xs" id="receipt-items">
+          <!-- Items will be injected here -->
+        </table>
+      </div>
+      
+      <div class="text-xs flex flex-col gap-1 my-4">
+        <div class="flex justify-between font-bold text-sm">
+          <span>TOTAL:</span>
+          <span id="receipt-total">Rp 0</span>
+        </div>
+        <div class="flex justify-between">
+          <span>TUNAI:</span>
+          <span id="receipt-bayar">Rp 0</span>
+        </div>
+        <div class="flex justify-between">
+          <span>KEMBALI:</span>
+          <span id="receipt-kembali">Rp 0</span>
+        </div>
+      </div>
+      
+      <div class="text-center mt-6 pt-4 border-t-2 border-dashed border-slate-300">
+        <p id="receipt-pesan" class="text-[11px] mt-1">TERIMA KASIH<br>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.</p>
+      </div>
+    </div>
+    
+    <div class="p-4 bg-slate-50 flex gap-3 print:hidden border-t border-slate-100">
+      <button onclick="closeReceiptModal()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition">Tutup</button>
+      <button onclick="printReceipt()" class="flex-1 py-2.5 rounded-xl font-bold text-white bg-primary hover:bg-primary/90 transition shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
+        <i class="ri-printer-fill"></i> Cetak Struk
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all duration-300" onclick="if(event.target === this) { const btn = document.getElementById('btn-confirm-cancel'); if(btn) btn.click(); }">
+  <div class="bg-white rounded-3xl shadow-glass w-full max-w-sm mx-4 overflow-hidden transform transition-all scale-95 opacity-0 duration-300 border border-white/50" id="confirm-content">
+    <div class="p-6 bg-white flex flex-col items-center text-center">
+      <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4" id="confirm-icon-wrapper">
+        <i class="ri-error-warning-line text-3xl" id="confirm-icon"></i>
+      </div>
+      <h3 class="text-xl font-bold text-slate-800 mb-2" id="confirm-title">Konfirmasi</h3>
+      <p class="text-slate-500 text-sm mb-6 whitespace-pre-line" id="confirm-message">Apakah Anda yakin?</p>
+      <div class="flex gap-3 w-full">
+        <button id="btn-confirm-cancel" class="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition">Batal</button>
+        <button id="btn-confirm-ok" class="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition shadow-lg shadow-red-500/30">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script src="main.js"></script>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+       loadPage('dashboard');
+       
+       // Anti Pull-to-Refresh untuk HP (Sangat ampuh untuk Google Apps Script)
+       document.body.addEventListener('touchstart', function(e) {
+           window.lastTouchY = e.touches[0].clientY;
+       }, { passive: false });
+
+       document.body.addEventListener('touchmove', function(e) {
+           const target = e.target;
+           // Cari tahu apakah elemen yang sedang disentuh adalah area yang boleh di-scroll
+           const isScrollable = target.closest('.overflow-y-auto, .overflow-y-scroll, .overflow-auto');
+           
+           if (!isScrollable) {
+               // Jika bukan area scroll (seperti header/background), matikan pantulan
+               e.preventDefault(); 
+           } else {
+               // Jika di area scroll, tapi posisinya sedang mentok di paling atas dan user menarik ke bawah (pull)
+               if (isScrollable.scrollTop <= 0 && e.touches[0].clientY > window.lastTouchY) {
+                   e.preventDefault(); // Matikan refresh
+               }
+           }
+       }, { passive: false });
+    });
+  </script>
+</body>
+</html>
