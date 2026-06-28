@@ -1241,9 +1241,9 @@
          totalPenjualan += r.TOTAL;
          if (r.DETAILS) {
            r.DETAILS.forEach(d => {
-              // Jika harga_beli sudah dikunci di Supabase, gunakan itu. Jika belum (transaksi lama), fallback cari di katalog.
+              // Jika harga_beli sudah dikunci di Supabase, gunakan itu. Jika belum atau 0 (karena DEFAULT SQL), fallback cari di katalog.
               let hBeli = d.harga_beli;
-              if (hBeli === undefined || hBeli === null) {
+              if (!hBeli) {
                 const p = AppState.products.find(x => String(x.ID_PRODUK) === String(d.id_produk));
                 hBeli = p ? (p.HARGA_BELI || 0) : 0;
               }
