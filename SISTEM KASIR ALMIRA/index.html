@@ -434,23 +434,11 @@
       <button onclick="loadProductsTable()" class="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" title="Muat Ulang"><i class="ri-refresh-line text-xl"></i></button>
     </div>
     
-    <div class="overflow-x-auto overflow-y-auto flex-1 h-[calc(100vh-250px)] overscroll-y-contain pb-24">
-      <table class="w-full text-left whitespace-nowrap">
-        <thead class="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md shadow-sm text-slate-400 font-bold text-xs uppercase tracking-wider">
-          <tr>
-            <th class="px-6 py-5 hidden md:table-cell rounded-tl-xl">Kode / Barcode</th>
-            <th class="px-6 py-5 rounded-tl-xl md:rounded-none">Nama Produk</th>
-            <th class="px-6 py-5 text-right">Harga Beli</th>
-            <th class="px-6 py-5 text-right">Harga Jual</th>
-            <th class="px-6 py-5 text-center">Stok</th>
-            <th class="px-6 py-5 text-center w-24 rounded-tr-xl">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="product-table-body" class="divide-y divide-slate-50 text-slate-700 font-medium bg-white">
-          <!-- Render via JS -->
-          <tr><td colspan="6" class="p-10 text-center text-slate-400">Memuat data produk...</td></tr>
-        </tbody>
-      </table>
+    <div class="overflow-y-auto flex-1 h-[calc(100vh-250px)] overscroll-y-contain pb-24 p-4 lg:p-5">
+      <div id="product-table-body" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Render via JS -->
+        <div class="col-span-full p-10 text-center text-slate-400 font-medium">Memuat data produk...</div>
+      </div>
     </div>
   </div>
 </div>

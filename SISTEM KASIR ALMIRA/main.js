@@ -582,27 +582,33 @@
     
     const fragment = document.createDocumentFragment();
     data.forEach(p => {
-      const tr = document.createElement('tr');
-      tr.className = 'border-b border-slate-100 hover:bg-slate-50 transition duration-150 cursor-pointer';
-      tr.onclick = () => editProduct(p.ID_PRODUK);
-      tr.innerHTML = `
-        <td class="px-6 py-4 hidden md:table-cell"><span class="font-mono text-xs bg-slate-100 px-2.5 py-1.5 rounded-md text-slate-600">${p.BARCODE || p.ID_PRODUK}</span></td>
-        <td class="px-6 py-4 font-bold text-slate-800">${p.NAMA_PRODUK}</td>
-        <td class="px-6 py-4 text-right text-slate-500">${formatRupiah(p.HARGA_BELI || 0)}</td>
-        <td class="px-6 py-4 text-right font-bold text-slate-800">${formatRupiah(p.HARGA_JUAL || 0)}</td>
-        <td class="px-6 py-4 text-center"><span class="${p.STOK < 5 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'} px-3 py-1 rounded-full text-xs font-bold shadow-sm">${p.STOK || 0} ${p.SATUAN || 'Pcs'}</span></td>
-        <td class="px-6 py-4 text-center">
-          <div class="flex items-center justify-center gap-2">
-            <button onclick="event.stopPropagation(); editProduct('${p.ID_PRODUK}')" class="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition" title="Edit">
-              <i class="ri-edit-2-line text-lg"></i>
-            </button>
-            <button onclick="event.stopPropagation(); deleteProductAction('${p.ID_PRODUK}')" class="p-2 text-red-500 hover:bg-red-100 rounded-lg transition" title="Hapus">
-              <i class="ri-delete-bin-line text-lg"></i>
-            </button>
-          </div>
-        </td>
+      const div = document.createElement('div');
+      div.className = 'bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 relative hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-all cursor-pointer';
+      div.onclick = () => editProduct(p.ID_PRODUK);
+      div.innerHTML = `
+        <div class="flex justify-between items-start">
+           <div class="pr-2">
+             <div class="font-bold text-slate-800 text-[15px] leading-tight">${p.NAMA_PRODUK}</div>
+             <div class="font-mono text-[11px] text-slate-400 mt-1">${p.BARCODE || p.ID_PRODUK}</div>
+           </div>
+           <span class="${p.STOK < 5 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'} px-2.5 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap shrink-0">${p.STOK || 0} ${p.SATUAN || 'Pcs'}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-slate-50">
+           <div>
+             <div class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Harga Beli</div>
+             <div class="text-[13px] font-bold text-slate-500">${formatRupiah(p.HARGA_BELI || 0)}</div>
+           </div>
+           <div class="text-right">
+             <div class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Harga Jual</div>
+             <div class="text-[14px] font-black text-primary">${formatRupiah(p.HARGA_JUAL || 0)}</div>
+           </div>
+        </div>
+        <div class="flex items-center gap-2 mt-2">
+           <button onclick="event.stopPropagation(); editProduct('${p.ID_PRODUK}')" class="flex-1 py-2 text-blue-600 font-bold text-xs bg-blue-50 hover:bg-blue-100 rounded-xl transition flex items-center justify-center gap-1.5"><i class="ri-edit-2-line"></i> Edit</button>
+           <button onclick="event.stopPropagation(); deleteProductAction('${p.ID_PRODUK}')" class="flex-1 py-2 text-red-600 font-bold text-xs bg-red-50 hover:bg-red-100 rounded-xl transition flex items-center justify-center gap-1.5"><i class="ri-delete-bin-line"></i> Hapus</button>
+        </div>
       `;
-      fragment.appendChild(tr);
+      fragment.appendChild(div);
     });
     
     tbody.innerHTML = '';
@@ -1503,20 +1509,16 @@
     const nama_barang = document.getElementById('form-nama').value;
     const satuan = document.getElementById('form-satuan').value;
     
-    if (!id) {
-       const isExist = AppState.products.find(p => 
-          p.NAMA_PRODUK.toLowerCase() === nama_barang.trim().toLowerCase() && 
-          p.SATUAN === satuan
-       );
-       
-       if (isExist) {
-          showToast(`Produk '${nama_barang} (${satuan})' sudah ada! Dialihkan ke mode Edit...`, 'info');
-          closeModal();
-          setTimeout(() => {
-             openProductModal(isExist);
-          }, 400);
-          return;
-       }
+    // Cek Duplikat Nama Barang
+    const isExist = AppState.products.find(p => 
+       p.NAMA_PRODUK.toLowerCase() === nama_barang.trim().toLowerCase() && 
+       p.SATUAN === satuan &&
+       p.ID_PRODUK !== id // Abaikan jika itu adalah produk yang sedang diedit ini sendiri
+    );
+    
+    if (isExist) {
+       showToast(`Produk '${nama_barang} (${satuan})' sudah ada! Harap gunakan nama lain.`, 'error');
+       return;
     }
     
     const btn = document.getElementById('btn-save-product');
