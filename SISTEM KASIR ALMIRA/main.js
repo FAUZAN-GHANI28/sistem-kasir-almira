@@ -589,7 +589,7 @@
         <div class="flex justify-between items-start">
            <div class="pr-2">
              <div class="font-bold text-slate-800 text-[15px] leading-tight">${p.NAMA_PRODUK}</div>
-             <div class="font-mono text-[11px] text-slate-400 mt-1">${p.BARCODE || p.ID_PRODUK}</div>
+             ${p.BARCODE ? `<div class="font-mono text-[11px] text-slate-400 mt-1"><i class="ri-barcode-line"></i> ${p.BARCODE}</div>` : ''}
            </div>
            <span class="${p.STOK < 5 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'} px-2.5 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap shrink-0">${p.STOK || 0} ${p.SATUAN || 'Pcs'}</span>
         </div>
