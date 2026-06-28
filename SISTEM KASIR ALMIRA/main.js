@@ -1133,15 +1133,27 @@
        return;
      }
      
-     // Fetch detail transaksi secara terpisah untuk menghindari error Foreign Key Supabase
+     // Fetch detail transaksi secara terpisah dengan paginasi untuk mengatasi limit 1000 row Supabase
      let allDetails = [];
      const salesIds = sales.map(s => s.id_jual);
      if (salesIds.length > 0) {
-        const { data: details } = await supabaseClient
-          .from('detail_penjualan')
-          .select('id_jual, id_produk, qty, harga, harga_beli, subtotal')
-          .in('id_jual', salesIds);
-        if (details) allDetails = details;
+        let start = 0;
+        const limit = 1000;
+        while(true) {
+          const { data: details } = await supabaseClient
+            .from('detail_penjualan')
+            .select('id_jual, id_produk, qty, harga, harga_beli, subtotal')
+            .in('id_jual', salesIds)
+            .range(start, start + limit - 1);
+          
+          if (details && details.length > 0) {
+            allDetails = allDetails.concat(details);
+            if (details.length < limit) break;
+            start += limit;
+          } else {
+            break;
+          }
+        }
      }
 
      allReportData = sales.map(r => {
