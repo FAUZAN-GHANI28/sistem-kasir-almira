@@ -1046,6 +1046,7 @@
         id_produk: (item.KODE_BARANG === 'MANUAL') ? null : item.ID_PRODUK,
         qty: item.qty,
         harga: item.HARGA_JUAL,
+        harga_beli: item.HARGA_BELI || 0,
         subtotal: item.HARGA_JUAL * item.qty
       }));
       
@@ -1138,7 +1139,7 @@
      if (salesIds.length > 0) {
         const { data: details } = await supabaseClient
           .from('detail_penjualan')
-          .select('id_jual, id_produk, qty, harga, subtotal')
+          .select('id_jual, id_produk, qty, harga, harga_beli, subtotal')
           .in('id_jual', salesIds);
         if (details) allDetails = details;
      }
@@ -1228,8 +1229,12 @@
          totalPenjualan += r.TOTAL;
          if (r.DETAILS) {
            r.DETAILS.forEach(d => {
-              const p = AppState.products.find(x => String(x.ID_PRODUK) === String(d.id_produk));
-              const hBeli = p ? (p.HARGA_BELI || 0) : 0;
+              // Jika harga_beli sudah dikunci di Supabase, gunakan itu. Jika belum (transaksi lama), fallback cari di katalog.
+              let hBeli = d.harga_beli;
+              if (hBeli === undefined || hBeli === null) {
+                const p = AppState.products.find(x => String(x.ID_PRODUK) === String(d.id_produk));
+                hBeli = p ? (p.HARGA_BELI || 0) : 0;
+              }
               totalModal += (hBeli * d.qty);
            });
          }
@@ -1601,17 +1606,22 @@
     const nameInput = document.getElementById('manual-name-input');
     const customName = nameInput && nameInput.value.trim() !== '' ? nameInput.value.trim() : 'Transaksi Manual';
     
+    const modalInput = document.getElementById('manual-modal-input');
+    const modalValue = modalInput && modalInput.value ? parseInt(modalInput.value) : 0;
+    
     const product = {
       ID_PRODUK: 'MANUAL_' + Date.now(),
       NAMA_PRODUK: customName,
       KODE_BARANG: 'MANUAL',
       HARGA_JUAL: amount,
+      HARGA_BELI: modalValue,
       qty: 1
     };
     addToCart(product);
     showToast('Berhasil ditambahkan ke keranjang', 'success');
     manualInput = "0";
     if(nameInput) nameInput.value = '';
+    if(modalInput) modalInput.value = '';
     updateManualDisplay();
   }
 
