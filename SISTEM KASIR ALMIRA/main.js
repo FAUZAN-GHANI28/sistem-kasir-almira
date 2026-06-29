@@ -369,24 +369,45 @@
         .limit(1000);
       if (salesErr) throw salesErr;
       
-      const { data: detailData } = await supabaseClient.from('detail_penjualan').select('*');
       const { data: productData } = await supabaseClient.from('master_barang').select('*');
       
       const costMap = {};
       if (productData) {
          productData.forEach(p => costMap[p.id_produk] = p.harga_beli || 0);
       }
+
+      let allDetails = [];
+      const salesIds = salesData.map(s => s.id_jual);
+      if (salesIds.length > 0) {
+         let start = 0;
+         const limit = 1000;
+         while(true) {
+           const { data: details } = await supabaseClient
+             .from('detail_penjualan')
+             .select('id_jual, id_produk, qty, harga, harga_beli, subtotal')
+             .in('id_jual', salesIds)
+             .range(start, start + limit - 1);
+           
+           if (details && details.length > 0) {
+             allDetails = allDetails.concat(details);
+             if (details.length < limit) break;
+             start += limit;
+           } else {
+             break;
+           }
+         }
+      }
       
       const profitMap = {}; 
-      if (detailData) {
-         detailData.forEach(d => {
-            const hBeli = costMap[d.id_produk] || 0;
-            const hJual = d.harga || 0;
-            const profit = (hJual - hBeli) * d.qty;
-            if (!profitMap[d.id_jual]) profitMap[d.id_jual] = 0;
-            profitMap[d.id_jual] += profit;
-         });
-      }
+      allDetails.forEach(d => {
+         let hBeli = d.harga_beli;
+         if (!hBeli) hBeli = costMap[d.id_produk] || 0;
+         
+         const hJual = d.harga || 0;
+         const profit = (hJual - hBeli) * d.qty;
+         if (!profitMap[d.id_jual]) profitMap[d.id_jual] = 0;
+         profitMap[d.id_jual] += profit;
+      });
 
       let todaySales = 0;
       let todayProfit = 0;
