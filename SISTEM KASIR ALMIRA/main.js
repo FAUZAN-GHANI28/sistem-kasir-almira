@@ -314,13 +314,6 @@
       const d = new Date(dateStr);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
-  
-  function formatDateIndo(dateStr) {
-      if(!dateStr) return '';
-      const d = new Date(dateStr);
-      const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
-      return d.toLocaleDateString('id-ID', options);
-  }
 
   // --- DASHBOARD LOGIC ---
   let salesChartInstance = null;
@@ -1325,7 +1318,7 @@
     let totalModal = 0;
     
     if(data.length === 0) {
-      tbody.innerHTML = `<div class="col-span-full p-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-100">Belum ada riwayat transaksi</div>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">Belum ada riwayat transaksi</td></tr>`;
       currentReportSummary = { sales: 0, cogs: 0, profit: 0 };
       updateSummaryCardsUI();
       return;
@@ -1366,22 +1359,18 @@
       }
 
       const isRefunded = r.STATUS === 'REFUNDED';
-      const div = document.createElement('div');
-      div.className = 'bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 relative hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-all cursor-pointer';
-      div.onclick = () => openTransactionDetail(r.ID_JUAL);
-      div.innerHTML = `
-        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ${isRefunded ? 'line-through' : ''}">
-           ${formatDateIndo(r.TANGGAL)}
-        </div>
-        <div class="text-sm font-bold text-slate-800 line-clamp-2 leading-relaxed ${isRefunded ? 'line-through text-slate-400' : ''}">
-           ${itemListText}
-        </div>
-        <div class="flex items-center justify-between mt-1 pt-3 border-t border-slate-50">
-           ${isRefunded ? '<span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-red-100 text-red-600">REFUNDED</span>' : `<span class="px-2.5 py-1 rounded-md text-[10px] font-bold ${r.METODE==='QRIS'?'bg-sky-100 text-sky-700':'bg-emerald-100 text-emerald-700'}">${r.METODE || 'CASH'}</span>`}
-           <span class="text-base font-black ${isRefunded ? 'line-through text-slate-400' : 'text-slate-900'}">${formatRupiah(r.TOTAL)}</span>
-        </div>
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-slate-50 hover:bg-slate-50 hover:shadow-sm cursor-pointer transition';
+      tr.onclick = () => openTransactionDetail(r.ID_JUAL);
+      tr.innerHTML = `
+        <td class="p-4 ${isRefunded ? 'line-through text-slate-400' : ''}">${formatDate(r.TANGGAL)}</td>
+        <td class="p-4 ${isRefunded ? 'line-through text-slate-400' : 'font-bold text-slate-700'}">${itemListText}</td>
+        <td class="p-4 text-center">
+           ${isRefunded ? '<span class="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-600">REFUNDED</span>' : `<span class="px-2 py-1 rounded text-xs font-bold ${r.METODE==='QRIS'?'bg-purple-100 text-purple-600':'bg-green-100 text-green-600'}">${r.METODE || 'CASH'}</span>`}
+        </td>
+        <td class="p-4 text-right font-bold ${isRefunded ? 'line-through text-slate-400' : 'text-slate-800'}">${formatRupiah(r.TOTAL)}</td>
       `;
-      tbody.appendChild(div);
+      tbody.appendChild(tr);
     });
     
     // Update UI Ringkasan Keuangan
