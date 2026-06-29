@@ -320,6 +320,44 @@
 
   let isDashBalanceVisible = true;
   let currentDashSummary = { sales: 0, profit: 0, orders: 0 };
+  let dashDailyData = { sales: 0, profit: 0, orders: 0 };
+  let dashMonthlyData = { sales: 0, profit: 0, orders: 0 };
+  let dashboardPeriod = 'daily';
+
+  window.setDashboardPeriod = function(period) {
+     dashboardPeriod = period;
+     const btnDaily = document.getElementById('btn-period-daily');
+     const btnMonthly = document.getElementById('btn-period-monthly');
+     const periodText = document.getElementById('dash-period-text');
+     
+     if (period === 'daily') {
+        if (btnDaily) btnDaily.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-white shadow-sm text-slate-800 transition-all';
+        if (btnMonthly) btnMonthly.className = 'px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+        if (periodText) periodText.innerText = 'Ringkasan performa hari ini';
+        
+        const lSales = document.getElementById('dash-label-sales'); if (lSales) lSales.innerText = 'Pendapatan Hari Ini';
+        const lProfit = document.getElementById('dash-label-profit'); if (lProfit) lProfit.innerText = 'Laba Hari Ini';
+        const lOrders = document.getElementById('dash-label-orders'); if (lOrders) lOrders.innerText = 'Transaksi Hari Ini';
+        
+        currentDashSummary.sales = dashDailyData.sales;
+        currentDashSummary.profit = dashDailyData.profit;
+        currentDashSummary.orders = dashDailyData.orders;
+     } else {
+        if (btnMonthly) btnMonthly.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-white shadow-sm text-slate-800 transition-all';
+        if (btnDaily) btnDaily.className = 'px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+        if (periodText) periodText.innerText = 'Ringkasan performa bulan ini';
+        
+        const lSales = document.getElementById('dash-label-sales'); if (lSales) lSales.innerText = 'Pendapatan Bulan Ini';
+        const lProfit = document.getElementById('dash-label-profit'); if (lProfit) lProfit.innerText = 'Laba Bulan Ini';
+        const lOrders = document.getElementById('dash-label-orders'); if (lOrders) lOrders.innerText = 'Transaksi Bulan Ini';
+        
+        currentDashSummary.sales = dashMonthlyData.sales;
+        currentDashSummary.profit = dashMonthlyData.profit;
+        currentDashSummary.orders = dashMonthlyData.orders;
+     }
+     
+     updateDashSummaryCardsUI();
+  }
   
   function toggleDashBalanceVisibility(e) {
     if(e) e.stopPropagation();
@@ -413,6 +451,13 @@
       let todayProfit = 0;
       let todayOrders = 0;
       
+      let monthlySales = 0;
+      let monthlyProfit = 0;
+      let monthlyOrders = 0;
+      
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      
       const last7Days = [];
       for(let i=6; i>=0; i--) {
         const d = new Date();
@@ -447,6 +492,12 @@
             todayOrders++;
          }
          
+         if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+            monthlySales += sale.total;
+            monthlyProfit += saleProfit;
+            monthlyOrders++;
+         }
+         
          const chartDay = last7Days.find(d => d.dateStr === dateStr);
          if (chartDay) {
             chartDay.sales += sale.total;
@@ -462,10 +513,21 @@
          STOK: p.stock
       }));
 
-      currentDashSummary.sales = todaySales;
-      currentDashSummary.profit = todayProfit;
-      currentDashSummary.orders = todayOrders;
-      updateDashSummaryCardsUI();
+      dashDailyData = { sales: todaySales, profit: todayProfit, orders: todayOrders };
+      dashMonthlyData = { sales: monthlySales, profit: monthlyProfit, orders: monthlyOrders };
+      
+      if (dashboardPeriod === 'daily') {
+          currentDashSummary.sales = todaySales;
+          currentDashSummary.profit = todayProfit;
+          currentDashSummary.orders = todayOrders;
+      } else {
+          currentDashSummary.sales = monthlySales;
+          currentDashSummary.profit = monthlyProfit;
+          currentDashSummary.orders = monthlyOrders;
+      }
+      
+      // Pastikan label periode UI selalu terupdate sesuai dengan setDashboardPeriod yang tersimpan
+      setDashboardPeriod(dashboardPeriod);
       
       const ctx = document.getElementById('sales-chart');
       if (ctx && typeof Chart !== 'undefined') {
