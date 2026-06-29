@@ -1203,9 +1203,9 @@
   
   function updateSummaryCardsUI() {
     // Selalu set angka aslinya, karena kita akan menyembunyikan kontainernkatanya
-    document.getElementById('summary-sales').innerText = formatRupiah(currentReportSummary.sales);
-    document.getElementById('summary-cogs').innerText = formatRupiah(currentReportSummary.cogs);
-    document.getElementById('summary-profit').innerText = formatRupiah(currentReportSummary.profit);
+    if(document.getElementById('summary-sales')) document.getElementById('summary-sales').innerText = formatRupiah(currentReportSummary.sales);
+    if(document.getElementById('summary-cogs')) document.getElementById('summary-cogs').innerText = formatRupiah(currentReportSummary.cogs);
+    if(document.getElementById('summary-profit')) document.getElementById('summary-profit').innerText = formatRupiah(currentReportSummary.profit);
     
     const wrapper = document.getElementById('summary-cards-wrapper');
     if (wrapper) {
