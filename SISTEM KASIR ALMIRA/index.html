@@ -517,20 +517,10 @@
         </div>
       </div>
     </div>
-    <div class="overflow-x-auto overflow-y-auto flex-1 h-[calc(100vh-200px)] overscroll-y-contain pb-24">
-      <table class="w-full text-left whitespace-nowrap">
-        <thead class="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-md shadow-sm border-b border-slate-100 text-slate-500 font-bold text-xs uppercase tracking-wider">
-          <tr>
-            <th class="px-6 py-4">Tanggal & Waktu</th>
-            <th class="px-6 py-4">Daftar Barang</th>
-            <th class="px-6 py-4 text-center">Metode</th>
-            <th class="px-6 py-4 text-right">Total Transaksi</th>
-          </tr>
-        </thead>
-        <tbody id="report-table-body" class="divide-y divide-slate-50 text-slate-700 font-medium bg-white">
-          <tr><td colspan="4" class="p-10 text-center text-slate-400">Memuat laporan...</td></tr>
-        </tbody>
-      </table>
+    <div class="overflow-y-auto flex-1 h-[calc(100vh-200px)] overscroll-y-contain pb-24 p-4 lg:p-5 bg-slate-50/50">
+      <div id="report-table-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div class="col-span-full p-10 text-center text-slate-400">Memuat laporan...</div>
+      </div>
     </div>
   </div>
 </div>
