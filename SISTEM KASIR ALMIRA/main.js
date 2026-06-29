@@ -1266,33 +1266,72 @@
         };
      });
      
-     renderReport(allReportData);
+     // Trigger filter with default period
+     if(typeof reportPeriod === 'undefined') {
+       window.reportPeriod = 'daily';
+     }
+     applyReportFilter();
   }
 
+  window.reportPeriod = 'daily';
+  
+  window.setReportPeriod = function(period) {
+    reportPeriod = period;
+    
+    const btnDaily = document.getElementById('btn-report-daily');
+    const btnMonthly = document.getElementById('btn-report-monthly');
+    const btnCustom = document.getElementById('btn-report-custom');
+    const filterSection = document.getElementById('report-custom-filter');
+    
+    if(btnDaily && btnMonthly && btnCustom) {
+      [btnDaily, btnMonthly, btnCustom].forEach(btn => {
+        btn.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+      });
+      
+      const activeClass = 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-primary transition-all';
+      if(period === 'daily') btnDaily.className = activeClass;
+      else if(period === 'monthly') btnMonthly.className = activeClass;
+      else if(period === 'custom') btnCustom.className = activeClass;
+    }
+    
+    if(filterSection) {
+      if(period === 'custom') {
+        filterSection.classList.remove('hidden');
+        filterSection.classList.add('flex');
+      } else {
+        filterSection.classList.add('hidden');
+        filterSection.classList.remove('flex');
+      }
+    }
+    
+    applyReportFilter();
+  };
+
   function applyReportFilter() {
-    const start = document.getElementById('filter-start').value;
-    const end = document.getElementById('filter-end').value;
+    let start, end;
+    const now = new Date();
+    
+    if(window.reportPeriod === 'daily') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if(window.reportPeriod === 'monthly') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else {
+      const startStr = document.getElementById('filter-start') ? document.getElementById('filter-start').value : '';
+      const endStr = document.getElementById('filter-end') ? document.getElementById('filter-end').value : '';
+      if(startStr) { start = new Date(startStr); start.setHours(0,0,0,0); }
+      if(endStr) { end = new Date(endStr); end.setHours(23,59,59,999); }
+    }
+    
     const searchInput = document.getElementById('report-search');
     const keyword = searchInput ? searchInput.value.toLowerCase() : '';
-    
-    if(!start && !end && !keyword) {
-      renderReport(allReportData);
-      return;
-    }
     
     const filtered = allReportData.filter(r => {
       const d = new Date(r.TANGGAL);
       let isValidDate = true;
-      if (start) {
-        const sDate = new Date(start);
-        sDate.setHours(0,0,0,0);
-        if (d < sDate) isValidDate = false;
-      }
-      if (end) {
-        const eDate = new Date(end);
-        eDate.setHours(23,59,59,999);
-        if (d > eDate) isValidDate = false;
-      }
+      if (start && d < start) isValidDate = false;
+      if (end && d > end) isValidDate = false;
       
       let isValidSearch = true;
       if (keyword) {
